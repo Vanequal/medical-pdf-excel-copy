@@ -136,43 +136,59 @@ const UploadPDF = () => {
     return null;
   };
 
+  const isRefValueInRange = (actual, expected) => {
+    const normalizeRef = (ref) => {
+      return ref.replace(/[,\s]/g, '').replace(/[–—]/g, '-');
+    };
+    
+    return normalizeRef(actual) === normalizeRef(expected);
+  };
+
 
   const filterNoise = (text) => {
     const noisePatterns = [
-      /Дата взятия образца:/,
-      /Дата поступления образца:/,
-      /Дата печати результата:/,
-      /Дата выдачи:/,
-      /Пол:/,
-      /Возраст:/,
-      /ИНЗ:/,
-      /Врач:/,
-      /ООО/,
-      /www\./,
-      /стр\./,
-      /Наименование:/,
-      /Результат:/,
-      /Единицы:/,
-      /Комментарии к заявке:/,
-      /Название принимаемых пациентом препаратов:/,
-      /Хранение и транспортировка/,
-      /Результаты исследований не являются диагнозом/,
-      /Внимание!/,
-      /Врач/,
-      /^[А-Яа-я]+(\s+[А-Яа-я]+){1,2}$/
+      /Дата взятия образца:/i,
+      /Дата поступления образца:/i,
+      /Дата печати результата:/i,
+      /Дата выдачи:/i,
+      /Пол:/i,
+      /Возраст:/i,
+      /ИНЗ:/i,
+      /Врач:/i,
+      /ООО/i,
+      /www\./i,
+      /стр\./i,
+      /Наименование:/i,
+      /Результат:/i,
+      /Единицы:/i,
+      /Комментарии к заявке:/i,
+      /Название принимаемых пациентом препаратов:/i,
+      /Хранение и транспортировка/i,
+      /Результаты исследований не являются диагнозом/i,
+      /Внимание!/i,
+      /^[А-Яа-я]+(\s+[А-Яа-я]+){1,2}$/i,
+      /номер:/i,
+      /пациент:/i,
+      /телефон:/i,
+      /страница/i,
+      /лаборатория/i,
+      /анализ/i,
+      /норма:/i,
+      /референс:/i
     ];
-
+  
     return text
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => {
-      // Сохраняем строки, содержащие цифры или специфические единицы измерения
-      if (/\d/.test(line) || /10\*9\/л|кл\/л|г\/л/.test(line)) {
-        return true;
-      }
-      return !noisePatterns.some(pattern => pattern.test(line));
-    })
-    .join("\n");
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => {
+        // Сохраняем строки с числами или единицами измерения
+        if (/[\d.,]+/.test(line) || new RegExp(unitsPatterns, 'i').test(line)) {
+          // Проверяем, не является ли строка шумом
+          return !noisePatterns.some(pattern => pattern.test(line));
+        }
+        return false;
+      })
+      .join("\n");
   };
 
   const unitsPatterns = [
@@ -231,10 +247,114 @@ const UploadPDF = () => {
     'мг/?сут',           // Миллиграмм в сутки
     'кл/?сек',           // Клетки в секунду
     '\\d+°[cC]',         // Градусы Цельсия
-    '\\d+°[fF]'          // Градусы Фаренгейта
+    '\\d+°[fF]'       ,   // Градусы Фаренгейта
+    '10\\^?12/?л',
+    '10\\^?9/?л',
+    '10\\^?6/?л',
+    'г/?л',
+    'фл',
+    'пг',
+    '%',
+    'ммоль/?л',
+    'мкмоль/?л',
+    'ед/?л',
+    'мм/?ч',
+    'мкг/?мл',
+    'нг/?мл',
+    'мг/?л',
+    'мкг/?л'
   ].join('|');
   
   
+  const normalizeUnits = (units) => {
+    if (!units) return "";
+    
+    // Clean up the input but preserve notation style
+    let cleanedUnits = units.trim()
+      .replace(/\s+/g, '') // Remove extra spaces
+      .replace(/[·]/g, '*'); // Convert middle dot to asterisk
+    
+    // Define unit patterns that should be preserved exactly as they are
+    const exactUnits = [
+      '10*12/л',
+      '10*9/л',
+      '10*6/л',
+      '10^12/л',
+      '10^9/л',
+      '10^6/л',
+      '10×12/л',
+      '10×9/л',
+      '10×6/л',
+      'г/л',
+      'фл',
+      'пг',
+      '%',
+      'ммоль/л',
+      'мкмоль/л',
+      'ед/л'
+    ];
+  
+    // Check for exact matches first
+    if (exactUnits.includes(cleanedUnits)) {
+      return cleanedUnits;
+    }
+  
+    // Handle variations in separators while preserving the original notation type
+    const scientificMatch = cleanedUnits.match(/10([*×^])(\d+)\/л/i);
+    if (scientificMatch) {
+      const [_, notation, number] = scientificMatch;
+      return `10${notation}${number}/л`;
+    }
+  
+    // Handle basic unit variations
+    const basicUnits = {
+      'г\\л': 'г/л',
+      'г.л': 'г/л',
+    };
+  
+    for (const [pattern, replacement] of Object.entries(basicUnits)) {
+      if (new RegExp(`^${pattern}$`, 'i').test(cleanedUnits)) {
+        return replacement;
+      }
+    }
+  
+    return cleanedUnits;
+  };
+  const normalizeRefValue = (refValue) => {
+    if (!refValue) return "";
+  
+    // Очистка и базовая нормализация
+    refValue = refValue.trim()
+      .replace(/\s+/g, '')  // Убираем лишние пробелы
+      .replace(/,/g, '.')   // Заменяем запятые на точки
+      .replace(/[–—]/g, '-'); // Стандартизируем тире
+  
+    // Обработка диапазонов с отрицательными числами
+    const negativePattern = /(-?\d+\.?\d*)\s*-\s*(-?\d+\.?\d*)/;
+    const negativeMatch = refValue.match(negativePattern);
+    if (negativeMatch) {
+      return `${negativeMatch[1]}-${negativeMatch[2]}`;
+    }
+  
+    // Если просто одно отрицательное число
+    if (/^-\d+\.?\d*$/.test(refValue)) {
+      return `${refValue}`;
+    }
+  
+    // Обычный диапазон
+    const normalPattern = /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/;
+    const normalMatch = refValue.match(normalPattern);
+    if (normalMatch) {
+      return `${normalMatch[1]}-${normalMatch[2]}`;
+    }
+  
+    // Если одно положительное число
+    if (/^\d+\.?\d*$/.test(refValue)) {
+      return `0-${refValue}`;
+    }
+  
+    return refValue;
+  };
   
   // Улучшенная функция объединения строк
   const mergeBrokenLines = (text) => {
@@ -245,15 +365,13 @@ const UploadPDF = () => {
       const current = lines[i]?.trim() || '';
       const next = lines[i + 1]?.trim() || '';
       
-      // Проверяем, может ли следующая строка быть единицей измерения
-      const isNextLineUnits = next && new RegExp(`^(${unitsPatterns})$`, 'i').test(next);
+      // Проверка на перенос единиц измерения или референсных значений
+      const hasUnits = new RegExp(`(${unitsPatterns})$`, 'i').test(next);
+      const isRefValue = /^[<>]?\s*\d+[\d.,\-–\s]*$/.test(next);
       
-      if (current && next && (
-        (!/\d/.test(current) && !/:/.test(current) && /\d/.test(next)) ||
-        isNextLineUnits
-      )) {
+      if (current && next && (hasUnits || isRefValue)) {
         mergedLines.push(`${current} ${next}`);
-        i += 1;
+        i++;
       } else {
         mergedLines.push(current);
       }
@@ -271,14 +389,14 @@ const UploadPDF = () => {
   const parsePdfData = (text, date) => {
     const cleanText = filterNoise(text);
     const mergedText = mergeBrokenLines(cleanText);
-    const lines = mergedText.split("\n").filter(line => /\d/.test(line));
+    const lines = mergedText.split("\n").filter(line => line.trim());
   
-    // Updated regex pattern to better handle reference values
-    const regex = /^(.*?[а-яА-Яa-zA-Z].*?)\s+([\d.,]+)\s*(10\*9\/л|10\*9\/л|кл\/л|г\/л|сек|%|ммоль\/л|мг\/л|ед\/л|ед\/мл|мкмоль\/л|кПа|мл\/мин|мг\/дл|мкг\/мл|фл|кл|пг|мм\/час|[а-яА-Яa-zA-Z]*)\s*(?:(\d+[\d.,\-–\s]*)|[-–]\s*(\d+))?$/;
+    // Обновленный паттерн для более точного парсинга
+    const mainPattern = /^(.*?[а-яА-Яa-zA-Z].*?)\s+([-↓↑]?\s*\d+[.,]?\d*)\s*((?:10[\^*×]?\d+\/л|г\/л|фл|пг|%|ммоль\/л|мкмоль\/л|ед\/л)?)?\s*((?:\d+[.,]?\d*\s*[-–]\s*\d+[.,]?\d*)|(?:[<>]\s*\d+[.,]?\d*))?\s*$/i;
   
     return lines
       .map(line => {
-        const match = line.match(regex);
+        const match = line.match(mainPattern);
         if (!match) return null;
   
         const indicatorName = match[1]?.trim() || "";
@@ -286,32 +404,103 @@ const UploadPDF = () => {
   
         if (!validIndicator) return null;
   
-        // Improve units handling
+        // Обработка значения с учетом возможных стрелок
+        let value = match[2]?.trim()
+          .replace('↓', '')
+          .replace('↑', '')
+          .replace(",", ".")
+          .trim() || "";
+  
+        // Обработка единиц измерения с нормализацией
         let units = match[3]?.trim() || "";
-        if (units === "10*9/") {
-          units = "10*9/л";
+        if (units) {
+          units = normalizeUnits(units);
         }
-
-        // Enhanced reference values handling
-        let refValue = match[4] || match[5] || "";
-        if (match[5]) {
-          // If we caught a value after a dash/hyphen, prefix it with "0-"
-          refValue = `0-${match[5]}`;
+  
+        // Получаем и нормализуем референсные значения
+        let refValue = match[4]?.trim() || "";
+        if (refValue) {
+          // Используем extractReferenceValue для начальной обработки
+          refValue = extractReferenceValue(refValue);
+          // Затем нормализуем полученное значение
+          refValue = normalizeRefValue(refValue);
         }
-        if (refValue && !refValue.includes("-") && !refValue.includes("–")) {
-          // If we have a single number, assume it's the upper limit
-          refValue = `0-${refValue}`;
+  
+        // Дополнительные проверки валидности
+        if (!value || value === '-' || !units) return null;
+  
+        // Проверяем соответствие референсных значений
+        const expectedRef = indicatorMappings[validIndicator]?.refValue;
+        if (expectedRef && !isRefValueInRange(refValue, expectedRef)) {
+          console.warn(`Warning: Reference value mismatch for ${validIndicator}. Expected: ${expectedRef}, Got: ${refValue}`);
         }
   
         return {
           Исследование: validIndicator,
-          Результат: match[2]?.trim().replace(",", ".") || "",
+          Результат: value,
           Единицы: units,
-          "Референсные значения": refValue.trim().replace(",", "."),
+          "Референсные значения": refValue,
           Дата: date
         };
       })
       .filter(Boolean);
+  };
+  
+
+  const extractReferenceValue = (text) => {
+    if (!text) return "";
+  
+    // Clean up the text
+    let cleanText = text.trim()
+      .replace(/[а-яА-Яa-zA-Z].*/g, '') // Remove text containing letters
+      .replace(/\s+/g, '') // Remove extra spaces
+      .replace(/,/g, '.') // Replace commas with dots
+      .replace(/[–—]/g, '-') // Standardize dashes
+      .replace(/^\s*-\s*$/, ''); // Remove lone dashes
+  
+    // Return empty string for empty or invalid input
+    if (!cleanText || cleanText === '-') return "";
+  
+    // Define patterns for valid reference formats
+    const patterns = [
+      // <number or >number
+      /^[<>]\s*(\d+\.?\d*)$/,
+      
+      // number-number
+      /^(\d+\.?\d*)\s*[-]\s*(\d+\.?\d*)$/,
+      
+      // <number-number or >number-number
+      /^[<>]\s*(\d+\.?\d*)\s*[-]\s*(\d+\.?\d*)$/,
+      
+      // Single number (will be converted to 0-number)
+      /^(\d+\.?\d*)$/,
+      
+      // Negative ranges
+      /^(-\d+\.?\d*)\s*[-]\s*(-?\d+\.?\d*)$/,
+      
+      // Mixed ranges (negative to positive)
+      /^(-\d+\.?\d*)\s*[-]\s*(\d+\.?\d*)$/
+    ];
+  
+    for (const pattern of patterns) {
+      const match = cleanText.match(pattern);
+      if (match) {
+        if (cleanText.includes('<')) {
+          return match[2] ? `<${match[1]}-${match[2]}` : `<${match[1]}`;
+        }
+        if (cleanText.includes('>')) {
+          return match[2] ? `>${match[1]}-${match[2]}` : `>${match[1]}`;
+        }
+        // For regular ranges
+        if (match[2]) {
+          return `${match[1]}-${match[2]}`;
+        }
+        // For single numbers
+        return `0-${match[1]}`;
+      }
+    }
+  
+    return "";
   };
 
   const deleteIndicatorVariant = (standardName, variant) => {
