@@ -1038,7 +1038,7 @@ const UploadPDF = ({onFileDownloaded}) => {
 
       {loading && (
         <div className="loading">
-          <p>Обработано страниц: {processedFiles} из {fileCount}</p>
+          <p>Обработано страниц: {processedFiles} из всех документов</p>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all duration-300"
