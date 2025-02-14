@@ -62,6 +62,7 @@ function Register() {
             required
           />
           <ReCAPTCHA
+            required
             sitekey="6Le-gNcqAAAAAB-wmskReKT-wMPVCKTkJAi1NNtN"
             onChange={(value) => setCaptchaValue(value)}
           />
