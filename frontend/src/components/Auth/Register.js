@@ -2,16 +2,27 @@ import React, { useState } from "react";
 import { auth } from "../../firebase/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 import "../../styles/auth.css";
 
 function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [captchaValue, setCaptchaValue] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Пароли не совпадают");
+      return;
+    }
+    if (!captchaValue) {
+      setError("Подтвердите, что вы не робот");
+      return;
+    }
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       navigate("/login");
@@ -41,6 +52,18 @@ function Register() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Введите пароль"
             required
+          />
+          <label>Подтвердите пароль</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Повторите пароль"
+            required
+          />
+          <ReCAPTCHA
+            sitekey="6Le-gNcqAAAAAB-wmskReKT-wMPVCKTkJAi1NNtN"
+            onChange={(value) => setCaptchaValue(value)}
           />
           <button type="submit" className="auth-btn">
             Зарегистрироваться

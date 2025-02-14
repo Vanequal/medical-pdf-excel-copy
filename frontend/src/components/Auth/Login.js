@@ -3,6 +3,7 @@ import { auth } from "../../firebase/firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 import "../../styles/auth.css";
 
 function Login() {
@@ -10,6 +11,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [user] = useAuthState(auth); // Проверяем, залогинен ли пользователь
+  const [captchaValue, setCaptchaValue] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -69,6 +71,11 @@ function Login() {
           <button type="submit" className="auth-btn">
             Войти
           </button>
+          <ReCAPTCHA
+          style={{marginLeft: '1px', marginTop: '10px'}}
+            sitekey="6Le-gNcqAAAAAB-wmskReKT-wMPVCKTkJAi1NNtN"
+            onChange={(value) => setCaptchaValue(value)}
+          />
         </form>
         <p className="auth-footer">
           Нет аккаунта? <a href="/register">Зарегистрироваться</a>
