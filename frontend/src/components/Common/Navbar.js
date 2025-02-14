@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { User } from 'lucide-react';
 import { Grid2x2 } from 'lucide-react';
+import { SquareChartGantt } from 'lucide-react';
 import "../../styles/navbar.css";
 
 const Navbar = () => {
@@ -11,6 +12,12 @@ const Navbar = () => {
                 <Link to="/">Medical App</Link>
             </div>
             <ul className="navbar-links">
+            <li>
+                    <Link to="/manual" className="navbar-icon">
+                        <SquareChartGantt size={28}/>
+                        <span className="navbar-tooltip">Manual</span>
+                    </Link>
+                </li>
                 <li>
                     <Link to="/dashboard" className="navbar-icon">
                     <Grid2x2 size={28}/>

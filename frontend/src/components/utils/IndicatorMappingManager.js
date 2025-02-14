@@ -1,73 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../../styles/IndicatorMappingManager.css';
 
-const IndicatorMappingsManager = ({
-  mappings,
-  onAddMapping,
-  onAddVariant,
-  onDeleteMapping,
-  onDeleteVariant
-}) => {
+const IndicatorMappingsManager = ({ mappings, onAddMapping, onDeleteMapping }) => {
   const [newIndicator, setNewIndicator] = useState('');
+  const [newUnits, setNewUnits] = useState('');
+  const [newRefValue, setNewRefValue] = useState('');
 
-  const handleAddIndicator = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const trimmedIndicator = newIndicator.trim();
-    if (trimmedIndicator && !Object.keys(mappings).includes(trimmedIndicator)) {
-      onAddMapping(trimmedIndicator);
+    if (newIndicator.trim()) {
+      onAddMapping(newIndicator.trim(), {
+        units: newUnits.trim(),
+        refValue: newRefValue.trim(),
+        variants: []
+      });
       setNewIndicator('');
+      setNewUnits('');
+      setNewRefValue('');
     }
-  };
-
-  const handleDeleteIndicator = (indicatorName) => {
-    onDeleteMapping(indicatorName);
   };
 
   return (
     <div className="indicator-manager">
-      <h3 className="title">Настройка соответствия показателей</h3>
-
-      <form onSubmit={handleAddIndicator} className="add-indicator-form">
-        <div className="input-group">
-          <input
-            type="text"
-            className="input-field"
-            value={newIndicator}
-            onChange={(e) => setNewIndicator(e.target.value)}
-            placeholder="Название нового показателя"
-          />
-          <button type="submit" className="btn add-btn">
-            Добавить показатель
-          </button>
-        </div>
+      <h2 className="title">Управление показателями</h2>
+      <form className="add-indicator-form" onSubmit={handleSubmit}>
+        <input
+          className="input-field"
+          type="text"
+          value={newIndicator}
+          onChange={(e) => setNewIndicator(e.target.value)}
+          placeholder="Название показателя"
+          required
+        />
+        <input
+          className="input-field"
+          type="text"
+          value={newUnits}
+          onChange={(e) => setNewUnits(e.target.value)}
+          placeholder="Единицы измерения"
+        />
+        <input
+          className="input-field"
+          type="text"
+          value={newRefValue}
+          onChange={(e) => setNewRefValue(e.target.value)}
+          placeholder="Референсные значения"
+        />
+        <button className="btn add-btn" type="submit">Добавить</button>
       </form>
 
       <div className="mappings-container">
-        {Object.entries(mappings || {}).map(([indicatorName, variants]) => (
-          <div key={indicatorName} className="mapping-item">
+        {Object.entries(mappings).map(([indicator, data]) => (
+          <div key={indicator} className="mapping-item">
             <div className="indicator-header">
-              <h4 className="indicator-name">{indicatorName}</h4>
-              <button
-                className="btn delete-btn"
-                onClick={() => handleDeleteIndicator(indicatorName)}
-              >
-                Удалить показатель
+              <h3>{indicator}</h3>
+              <button className="btn delete-btn" onClick={() => onDeleteMapping(indicator)}>
+                Удалить
               </button>
             </div>
-
-            <div className="variants-list">
-              {Array.isArray(variants) &&
-                variants.map((variant, index) => (
-                  <div key={index} className="variant-item">
-                    <span className="variant-name">{variant}</span>
-                    <button
-                      className="btn delete-btn"
-                      onClick={() => onDeleteVariant(indicatorName, variant)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+            <div className="indicator-details">
+              <p><strong>Единицы измерения:</strong> {data.units || '—'}</p>
+              <p><strong>Референсные значения:</strong> {data.refValue || '—'}</p>
             </div>
           </div>
         ))}

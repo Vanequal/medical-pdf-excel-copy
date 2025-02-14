@@ -7,6 +7,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import Navbar from "./components/Common/Navbar";
 import Footer from "./components/Common/Footer";
 import { auth } from "./firebase/firebase";
+import Manual from "./components/Common/Manual";
 
 function App() {
   const isLoggedIn = !!auth.currentUser; 
@@ -15,6 +16,7 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
+        <Route path="/manual" element={<Manual/>}/>
         <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/register" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Register />} />
         <Route

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import UploadPDF from "../utils/UploadPDF";
-import { ArrowDownToLine, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import "../../styles/dashboard.css";
 
 const Dashboard = () => {
@@ -13,7 +13,11 @@ const Dashboard = () => {
     localStorage.setItem('fileHistory', JSON.stringify(fileHistory));
   }, [fileHistory]);
 
-  const handleFileDownloaded = (fileName) => {
+  const handleFileDownloaded = () => {
+    // Since the UploadPDF component uses a fixed name "Medical_Analysis",
+    // we'll use that as the default file name
+    const fileName = "Medical_Analysis";
+
     const newHistory = [
       {
         id: Date.now(),
@@ -24,16 +28,6 @@ const Dashboard = () => {
     ].slice(0, 10); // Keep only the last 10 files
 
     setFileHistory(newHistory);
-  };
-
-  const handleRedownload = (fileName) => {
-    // Trigger redownload of the file
-    const link = document.createElement('a');
-    link.href = `${fileName}.xlsx`;
-    link.download = `${fileName}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleDeleteFromHistory = (id) => {
@@ -63,15 +57,11 @@ const Dashboard = () => {
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-gray-500">{file.date}</p>
                   </div>
-                  <div style={{display: 'flex', gap: '20px', justifyContent: 'center'}} className="flex gap-2">
-                    <button
-                      onClick={() => handleRedownload(file.name)}
-                      title="Загрузить заново"
-                    >
-                      <ArrowDownToLine size={20} />
-                    </button>
+                  <div className="flex items-center">
                     <button
                       onClick={() => handleDeleteFromHistory(file.id)}
+                      style={{background: '#2c3e50'}}
+                      className="p-2 text-gray-600 hover:text-red-500 transition-colors"
                       title="Удалить из истории"
                     >
                       <Trash2 size={20} />
