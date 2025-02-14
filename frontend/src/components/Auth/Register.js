@@ -64,7 +64,7 @@ function Register() {
           <ReCAPTCHA
             required
             sitekey="6Le-gNcqAAAAAB-wmskReKT-wMPVCKTkJAi1NNtN"
-            onChange={(value) => setCaptchaValue(value)}
+            onChange={(value, token) => setCaptchaValue(value, token)}
           />
           <button type="submit" className="auth-btn">
             Зарегистрироваться

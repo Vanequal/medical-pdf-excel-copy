@@ -75,7 +75,7 @@ function Login() {
             required
             style={{ marginLeft: '1px', marginTop: '10px' }}
             sitekey="6Le-gNcqAAAAAB-wmskReKT-wMPVCKTkJAi1NNtN"
-            onChange={(value) => setCaptchaValue(value)}
+            onChange={(value, token) => setCaptchaValue(value, token)}
           />
         </form>
         <p className="auth-footer">
