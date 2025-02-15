@@ -27,10 +27,14 @@ function Register() {
       await createUserWithEmailAndPassword(auth, email, password);
       navigate("/login");
     } catch (err) {
-      setError("Ошибка при регистрации");
+      if (err.code === "auth/email-already-in-use") {
+        setError("Этот email уже зарегистрирован. Попробуйте войти.");
+      } else {
+        setError("Ошибка при регистрации. Проверьте данные.");
+      }
     }
   };
-
+  
   return (
     <div className="auth-container">
       <div className="auth-box">
